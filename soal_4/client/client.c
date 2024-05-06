@@ -4,8 +4,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-
-#define PORT 0704
+#define PORT 5000
 
 int main() {
     int client;
