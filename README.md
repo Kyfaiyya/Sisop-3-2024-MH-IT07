@@ -198,3 +198,5 @@ f. Max ingin hasil dari setiap perhitungan dicatat dalam sebuah log yang diberi 
   -> `kalkulator` adalah nama output dari hasil eksekusi file `dudududu.c`
   
   -> Jadi, file `dudududu.c` dieksekusi dan disimpan sebagai `kalkulator`. Seperti bagaimana yang diminta dari soal
+
+- Run program menggunakan command `./kalkulator <argumen>`
