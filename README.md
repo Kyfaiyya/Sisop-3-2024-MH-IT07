@@ -217,6 +217,7 @@ f. Max ingin hasil dari setiap perhitungan dicatat dalam sebuah log yang diberi 
 ```
 2. Deklarasi Fungsi
 - Function `convNumb`
+
 Fungsi ini untuk mengkonversi kata (string) menjadi angka
 ```
 int convNumb(char *str) {
@@ -236,6 +237,7 @@ int convNumb(char *str) {
   }
 ```
 - Function `convWords`
+
 Fungsi ini untuk mengkonversi angka menjadi kata
 ```
 void convWords(int number, char *words) {
@@ -257,4 +259,104 @@ void convWords(int number, char *words) {
         }
     }
 }
+```
+- Function `main`
+```
+ int main(int argc, char *argv[]) {
+      // Input
+      char input1[20], input2[20];
+      scanf("%s %s", input1, input2);
+
+      // Pipes
+      int fd1[2], fd2[2];
+      if (pipe(fd1) == -1 || pipe(fd2) == -1) {
+          perror("ERROR");
+          exit(EXIT_FAILURE);
+      }
+
+      // Fork
+      pid_t pid = fork();
+      if (pid < 0) {
+          perror("Gagal FORK!");
+          exit(EXIT_FAILURE);
+      }
+
+      // Parent 
+      if (pid > 0) {
+          close(fd1[0]);
+          close(fd2[1]);
+
+          // Konversi -> Angka
+          int num1 = convNumb(input1);
+          int num2 = convNumb(input2);
+
+          // Result
+          int result;
+          if (strcmp(argv[1], "-kali") == 0) {
+              result = num1 * num2;
+          } else if (strcmp(argv[1], "-tambah") == 0) {
+              result = num1 + num2;
+          } else if (strcmp(argv[1], "-kurang") == 0) {
+              result = num1 - num2;
+              if (result < 0) {
+                  printf("ERROR");
+                  exit(EXIT_FAILURE);
+              }
+          } else if (strcmp(argv[1], "-bagi") == 0) {
+              if (num2 == 0) {
+                  printf("ERROR\n");
+                  exit(EXIT_FAILURE);
+              }
+              result = num1 / num2;
+          }
+
+          write(fd1[1], &result, sizeof(result));
+          wait(NULL);
+
+	  // hasil konversi dari pipe
+          char words[50];
+          read(fd2[0], words, sizeof(words));
+          printf("%s", words);
+
+          close(fd1[1]);
+          close(fd2[0]);
+
+          // Membuat file .log
+          FILE *logFile = fopen("histori.log", "a");
+          if (logFile != NULL) {
+              char message[100];
+              time_t t = time(NULL);
+              struct tm *tm = localtime(&t);
+              convWords(result, words);
+               fprintf(logFile, "[%02d/%02d/%02d %02d:%02d:%02d] [%s] %s %s %s sama dengan %s\n",
+                      tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec, argv[1],input1, argv[1], input2, words);
+              fclose(logFile);
+          } else {
+              perror("Gagal Membuat file .log!");
+          }
+      }
+
+      // Child
+      else {
+          close(fd1[1]);
+          close(fd2[0]);
+
+          int result;
+          read(fd1[0], &result, sizeof(result));
+
+          // Konversi ->  words
+          char words[50];
+          convWords(result, words);
+
+          // konversi ->  pipe
+          write(fd2[1], words, strlen(words)+1);
+
+          close(fd1[0]);
+          close(fd2[1]);
+
+          exit(EXIT_SUCCESS);
+      }
+
+      return 0;
+  }
 ```
