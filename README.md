@@ -77,6 +77,7 @@ f. Max ingin hasil dari setiap perhitungan dicatat dalam sebuah log yang diberi 
   void convWords(int number, char *words) {
     const char *word[] = {"", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan"};
     const char *teen[] = {"sepuluh", "sebelas", "dua belas", "tiga belas", "empat belas", "lima belas", "enam belas", "tujuh belas", "delapan belas", "sembilan belas"};
+    const char *ten[]  = {"", "", "dua puluh", "tiga puluh", "empat puluh", "lima puluh", "enam puluh", "tujuh puluh", "delapan puluh", "sembilan puluh"};
 
     if (number >= 1 && number <= 9) {
         strcpy(words, word[number]);
@@ -86,9 +87,9 @@ f. Max ingin hasil dari setiap perhitungan dicatat dalam sebuah log yang diberi 
         int tens = number / 10;
         int ones = number % 10;
         if (ones == 0) {
-            strcpy(words, word[tens]);
+            strcpy(words, ten[tens]);
         } else {
-            sprintf(words, "%s puluh %s", word[tens], word[ones]);
+            sprintf(words, "%s %s", ten[tens], word[ones]);
         }
     }
   }
@@ -200,3 +201,60 @@ f. Max ingin hasil dari setiap perhitungan dicatat dalam sebuah log yang diberi 
   -> Jadi, file `dudududu.c` dieksekusi dan disimpan sebagai `kalkulator`. Seperti bagaimana yang diminta dari soal
 
 - Run program menggunakan command `./kalkulator <argumen>`
+
+### Penjelasan Script
+
+1. Library yang digunakan
+```
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <unistd.h>
+  #include <sys/types.h>
+  #include <sys/wait.h>
+  #include <string.h>
+  #include <math.h>
+  #include <time.h>
+```
+2. Deklarasi Fungsi
+- Function `convNumb`
+Fungsi ini untuk mengkonversi kata (string) menjadi angka
+```
+int convNumb(char *str) {
+    if (strcmp(str, "satu") == 0) return 1;
+        else if (strcmp(str, "dua") == 0) return 2;
+        else if (strcmp(str, "tiga") == 0) return 3;
+        else if (strcmp(str, "empat") == 0) return 4;
+        else if (strcmp(str, "lima") == 0) return 5;
+        else if (strcmp(str, "enam") == 0) return 6;
+        else if (strcmp(str, "tujuh") == 0) return 7;
+        else if (strcmp(str, "delapan") == 0) return 8;
+        else if (strcmp(str, "sembilan") == 0) return 9;
+        else {
+             printf("Yang bener abangku!\n");
+             exit(EXIT_FAILURE);
+        }
+  }
+```
+- Function `convWords`
+Fungsi ini untuk mengkonversi angka menjadi kata
+```
+void convWords(int number, char *words) {
+    const char *word[] = {"", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan"};
+    const char *teen[] = {"sepuluh", "sebelas", "dua belas", "tiga belas", "empat belas", "lima belas", "enam belas", "tujuh belas", "delapan belas", "sembilan belas"};
+    const char *ten[]  = {"", "", "dua puluh", "tiga puluh", "empat puluh", "lima puluh", "enam puluh", "tujuh puluh", "delapan puluh", "sembilan puluh"};
+
+    if (number >= 1 && number <= 9) {
+        strcpy(words, word[number]);
+    } else if (number >= 10 && number <= 19) {
+        strcpy(words, teen[number - 10]);
+    } else if (number >= 20 && number <= 99) {
+        int tens = number / 10;
+        int ones = number % 10;
+        if (ones == 0) {
+            strcpy(words, ten[tens]);
+        } else {
+            sprintf(words, "%s %s", ten[tens], word[ones]);
+        }
+    }
+}
+```
