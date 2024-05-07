@@ -261,6 +261,18 @@ void convWords(int number, char *words) {
 }
 ```
 - Function `main`
+
+Berisikan :
+
+-> Input : Mewakili 2 angka / atau dua input yang akan diproses
+
+-> Pipe
+
+-> Fork
+
+-> Parent Process
+
+-> Child Proses
 ```
  int main(int argc, char *argv[]) {
       // Input
