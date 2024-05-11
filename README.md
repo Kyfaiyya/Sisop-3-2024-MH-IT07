@@ -460,3 +460,443 @@ Output :
 [11/05/2024 05:06:53] [KALI] lima -kali lima sama dengan dua puluh lima.
 [11/05/2024 05:07:08] [KURANG] lima -kurang lima sama dengan �;���^?.
 ```
+
+## Soal 4
+Lewis Hamilton 🏎 seorang wibu akut dan sering melewatkan beberapa episode yang karena sibuk menjadi asisten. Maka dari itu dia membuat list anime yang sedang ongoing (biar tidak lupa) dan yang completed (anime lama tapi pengen ditonton aja). Tapi setelah Lewis pikir-pikir malah kepikiran untuk membuat list anime. Jadi dia membuat file (harap diunduh) dan ingin menggunakan socket yang baru saja dipelajarinya untuk melakukan CRUD pada list animenya. 
+a. Client dan server terhubung melalui socket. 
+b. client.c di dalam folder client dan server.c di dalam folder server
+c. Client berfungsi sebagai pengirim pesan dan dapat menerima pesan dari server.
+d. Server berfungsi sebagai penerima pesan dari client dan hanya menampilkan pesan perintah client saja. 
+e. Server digunakan untuk membaca myanimelist.csv. Dimana terjadi pengiriman data antara client ke server dan server ke client.
+	- Menampilkan seluruh judul
+	- Menampilkan judul berdasarkan genre
+	- Menampilkan judul berdasarkan hari
+	- Menampilkan status berdasarkan berdasarkan judul
+	- Menambahkan anime ke dalam file myanimelist.csv
+	- Melakukan edit anime berdasarkan judul
+	- Melakukan delete berdasarkan judul
+	- Selain command yang diberikan akan menampilkan tulisan “Invalid Command”
+f. Karena Lewis juga ingin track anime yang ditambah, diubah, dan dihapus. Maka dia membuat server dapat mencatat anime yang dihapus dalam sebuah log yang diberi nama change.log.
+	Format: [date] [type] [massage]
+	Type: ADD, EDIT, DEL
+	Ex:
+		[29/03/24] [ADD] Kanokari ditambahkan.
+		[29/03/24] [EDIT] Kamis,Comedy,Kanokari,completed diubah menjadi Jumat,Action,Naruto,completed.
+		[29/03/24] [DEL] Naruto berhasil dihapus.
+g. Koneksi antara client dan server tidak akan terputus jika ada kesalahan input dari client, cuma terputus jika user mengirim pesan “exit”. Program exit dilakukan pada sisi client.
+
+### Langkah Pengerjaan : 
+- Buat file client dan isi dengan client.c, di dalam client.c berisi :
+Struktur Fungsi Main :
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#define PORT 5000
+
+int main() {
+    int client;
+    struct sockaddr_in server;
+    char buffer[2048];
+```
+Membuat socket client :
+```
+  // Membuat socket client
+    client = socket(AF_INET, SOCK_STREAM, 0);
+    if (client < 0) {
+        printf("Error creating socket\n");
+        return -1;
+    }
+  ```
+Informasi Server :
+1. `serverAddr.sin_family = AF_INET;`                       Mengatur tipe alamat yang digunakan (IPv4).                                                  
+2. `serverAddr.sin_port = htons(PORT);`                     Menetapkan port server yang akan dituju.                                                      
+3. `serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");`   Menetapkan alamat IP server yang akan dituju (localhost).                                    
+  ```
+```
+Mencoba melakukan koneksi ke server. Jika gagal, mencetak pesan kesalahan dan keluar :
+```
+  // Mengisi informasi server
+    server.sin_family = AF_INET;
+    server.sin_port = htons(PORT);
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+   
+  // Membuat koneksi ke server
+    if (connect(client, (struct sockaddr *)&server, sizeof(server)) < 0) {
+        printf("Error connecting to server\n");
+        return -1;
+    }
+  ```
+Memulai loop tak terbatas untuk berinteraksi dengan server :
+```
+    // Loop untuk terus menerima dan mengirim pesan antara klien dan server
+    while (1) {
+        printf("You: ");
+        memset(buffer, 0, sizeof(buffer));
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+        send(client, buffer, strlen(buffer), 0);
+      
+        // Memeriksa apakah pengguna ingin keluar dari aplikasi
+        if (strcmp(buffer, "exit") == 0) {
+           exit(0);
+        }
+      
+        // Mengosongkan buffer sebelum menerima respons dari server
+        memset(buffer, 0, sizeof(buffer)); 
+        // Menerima respons dari server
+        int getbytes = recv(client, buffer, sizeof(buffer), 0); 
+        if (getbytes <= 0) {
+            printf("Connection closed by server\n");
+            break;
+        }
+        printf("Server:\n%s\n", buffer);
+    }
+    printf("Exiting the client\n");
+    close(client);
+    return 0;
+}
+```
+- Buat file server dan isi dengan server.c, di dalam server.c berisi :
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <time.h>
+#include <netinet/in.h>
+
+#define PORT 5000
+#define LIST "/home/kyfaiyya/modul3/soal4/myanimelist.csv"
+#define LOG "/home/kyfaiyya/modul3/soal4/change.log"
+#define TEMP "/home/kyfaiyya/modul3/soal4/temp.csv"
+```
+Struktur untuk menyimpan informasi file dan log :
+```
+typedef struct {
+    FILE *file;
+    FILE *logFile;
+} FileData;
+```
+Struktur untuk menyimpan informasi koneksi server :
+```
+typedef struct {
+    int serverSocket;
+    int socket;
+    struct sockaddr_in serverAddr;
+    struct sockaddr_in clientAddr;
+    socklen_t addr_size;
+    int addrlen;
+} ServerData;
+
+void RequestClient(char *buffer, char *response, FileData *fileData);
+void startServer(ServerData *serverData);
+```
+Struktur Main :
+```
+int main() {
+    ServerData serverData;
+
+    // Start the server
+    startServer(&serverData);
+
+    return 0;
+}
+```
+Fungsi RequestClient : 
+Fungsi ini digunakan untuk memproses permintaan dari klien.
+Fungsi ini membaca perintah dari buffer yang diterima dari klien, kemudian menjalankan tindakan yang sesuai berdasarkan perintah tersebut.
+Perintah yang didukung meliputi:
+'t' untuk mendapatkan daftar anime.
+'h' untuk mencari anime berdasarkan hari tayang.
+'g' untuk mencari anime berdasarkan genre.
+'s' untuk mencari anime berdasarkan status.
+'a' untuk menambahkan anime ke daftar.
+'e' untuk mengedit anime dalam daftar.
+'d' untuk menghapus anime dari daftar.
+Setiap perintah akan mempengaruhi file daftar anime (myanimelist.csv) dan file log (change.log).
+```
+void RequestClient(char *buffer, char *response, FileData *fileData) {
+    // Implementation of RequestClient function
+    fileData->file = fopen(LIST, "r");
+    fileData->logFile = fopen(LOG, "a");
+    
+    char line[2048];
+    char command[2048];
+    char parameter[2048];
+    int found = 0;
+
+    sscanf(buffer, "%s %[^\n]", command, parameter);
+
+    switch (command[0]) {
+        case 't':
+            {
+                int count = 1;
+                while (fgets(line, sizeof(line), fileData->file) != NULL) {
+                    if (line[0] != '\n') {
+                        char *token = strtok(line, ",");
+                        token = strtok(NULL, ",");
+                        token = strtok(NULL, ",");
+                        char numberedLine[2048];
+                        sprintf(numberedLine, "%d. %s", count, token);
+                        strcat(response, numberedLine);
+                        strcat(response, "\n");
+                        count++;
+                    }
+                }
+            }
+            break;
+        case 'h':
+            {
+                rewind(fileData->file);
+                int count = 1;
+                while (fgets(line, sizeof(line), fileData->file) != NULL) {
+                    if (line[0] != '\n') {
+                        char *token = strtok(line, ",");
+                        if (strcmp(token, parameter) == 0) {
+                            token = strtok(NULL, ",");
+                            token = strtok(NULL, ",");
+                            char numberedLine[2048];
+                            sprintf(numberedLine, "%d. %s", count, token);
+                            strcat(response, numberedLine);
+                            strcat(response, "\n");
+                            found = 1;
+                            count++;
+                        }
+                    }
+                }
+                if (!found) {
+                    strcat(response, "Tidak ada anime pada hari tersebut\n");
+                }
+            }
+            break;
+        case 'g':
+            {
+                rewind(fileData->file);
+                int count = 1;
+                while (fgets(line, sizeof(line), fileData->file) != NULL) {
+                    if (line[0] != '\n') {
+                        char *token = strtok(line, ",");
+                        token = strtok(NULL, ",");
+                        if (strcmp(token, parameter) == 0) {
+                            token = strtok(NULL, ",");
+                            char numberedLine[2048];
+                            sprintf(numberedLine, "%d. %s", count, token);
+                            strcat(response, numberedLine);
+                            strcat(response, "\n");
+                            found = 1;
+                            count++;
+                        }
+                    }
+                }
+                if (!found) {
+                    strcat(response, "Tidak ada anime dengan genre tersebut\n");
+                }
+            }
+            break;
+        case 's':
+            {
+                rewind(fileData->file);
+                while (fgets(line, sizeof(line), fileData->file) != NULL) {
+                    if (line[0] != '\n') {
+                        char *token = strtok(line, ",");
+                        token = strtok(NULL, ",");
+                        token = strtok(NULL, ",");
+                        if (strcmp(token, parameter) == 0) {
+                            token = strtok(NULL, "\n");
+                            strcat(response, token);
+                            strcat(response, "\n");
+                            found = 1;
+                        }
+                    }
+                }
+                if (!found) {
+                    strcat(response, "Tidak ada anime dengan status tersebut\n");
+                }
+            }
+            break;
+        case 'a':
+            {
+                rewind(fileData->file);
+                FILE *temp = fopen(TEMP, "w");
+                while (fgets(line, sizeof(line), fileData->file) != NULL) {
+                    fputs(line, temp);
+                }
+                fprintf(temp, "\n%s", parameter);
+                fclose(temp);
+                fclose(fileData->file);
+                remove(LIST);
+                rename(TEMP, LIST);
+                fileData->file = fopen(LIST, "r");
+
+                time_t now = time(NULL);
+                struct tm *t = localtime(&now);
+                char dateStr[20];
+                strftime(dateStr, sizeof(dateStr), "%d/%m/%y", t);
+
+                char *title = strtok(parameter, ",");
+                title = strtok(NULL, ",");
+                title = strtok(NULL, ",");
+
+                fprintf(fileData->logFile, "[%s] [ADD] %s ditambahkan.\n", dateStr, title);
+                strcat(response, "anime berhasil ditambahkan\n");
+            }
+            break;
+        case 'e':
+            {
+                rewind(fileData->file);
+                FILE *temp = fopen(TEMP, "w");
+
+                char *pastTitle = strtok(parameter, ",");
+                char *postLine = strtok(NULL, "\n");
+
+                while (fgets(line, sizeof(line), fileData->file) != NULL) {
+                    char *pastLine = strdup(line);
+                    char *token = strtok(line, ",");
+                    token = strtok(NULL, ",");
+                    token = strtok(NULL, ",");
+                    char *title = token;
+
+                    if (strcmp(title, pastTitle) != 0) {
+                        fputs(pastLine, temp);
+                    } else {
+                        fprintf(temp, "%s\n", postLine);
+
+                        time_t now = time(NULL);
+                        struct tm *t = localtime(&now);
+                        char dateStr[20];
+                        strftime(dateStr, sizeof(dateStr), "%d/%m/%y", t);
+
+                        fprintf(fileData->logFile, "[%s] [EDIT] %s diubah menjadi %s.\n", dateStr, pastLine, postLine);
+                    }
+
+                    free(pastLine);
+                }
+
+                fclose(temp);
+                fclose(fileData->file);
+                remove(LIST);
+                rename(TEMP, LIST);
+                fileData->file = fopen(LIST, "r");
+                strcat(response, "anime berhasil diedit\n");
+            }
+            break;
+        case 'd':
+            {
+                rewind(fileData->file);
+                FILE *temp = fopen(TEMP, "w");
+                char *title = parameter;
+                while (fgets(line, sizeof(line), fileData->file) != NULL) {
+                    char *pastLine = strdup(line);
+                    char *titleLine = strtok(line, ",");
+                    titleLine = strtok(NULL, ",");
+                    titleLine = strtok(NULL, ",");
+
+                    if (strcmp(titleLine, title) != 0) {
+                        fputs(pastLine, temp);
+                    } else {
+                        time_t now = time(NULL);
+                        struct tm *t = localtime(&now);
+                        char dateStr[20];
+                        strftime(dateStr, sizeof(dateStr), "%d/%m/%y", t);
+
+                        fprintf(fileData->logFile, "[%s] [DEL] %s berhasil dihapus.\n", dateStr, title);
+                    }
+                }
+                fclose(temp);
+                fclose(fileData->file);
+                remove(LIST);
+                rename(TEMP, LIST);
+                fileData->file = fopen(LIST, "r");
+                strcat(response, "anime berhasil dihapus\n");
+            }
+            break;
+        default:
+            strcat(response, "Invalid Command\n");
+    }
+
+    fclose(fileData->file);
+    fclose(fileData->logFile);
+}
+```
+Fungsi startServer : 
+Fungsi ini bertanggung jawab untuk memulai server.
+Pertama, server membuat soket menggunakan socket() dengan protokol AF_INET dan tipe soket SOCK_STREAM.
+Kemudian, server mengikat soketnya ke alamat yang ditentukan oleh PORT menggunakan bind().
+Setelah itu, server mulai mendengarkan koneksi masuk menggunakan listen().
+Selanjutnya, server memasuki loop utama di mana ia menerima koneksi baru dari klien menggunakan accept().
+Setiap koneksi baru akan ditangani dalam loop terpisah, di mana server akan menerima pesan dari klien, memprosesnya menggunakan RequestClient, dan mengirim respons kembali ke klien menggunakan send().
+Proses ini terus berlanjut hingga klien mengirim pesan "exit".
+Setelah klien keluar, server menutup soketnya dan keluar.
+```
+void startServer(ServerData *serverData) {
+    serverData->serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverData->serverSocket < 0) {
+        printf("Error creating socket\n");
+        exit(EXIT_FAILURE);
+    }
+
+    serverData->serverAddr.sin_family = AF_INET;
+    serverData->serverAddr.sin_port = htons(PORT);
+    serverData->serverAddr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(serverData->serverSocket, (struct sockaddr *)&(serverData->serverAddr), sizeof(serverData->serverAddr)) < 0) {
+        printf("Error binding socket\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(serverData->serverSocket, 1) < 0) {
+        printf("Error listening\n");
+        exit(EXIT_FAILURE);
+    }
+
+    while (1) {
+        serverData->addr_size = sizeof(serverData->clientAddr);
+        serverData->socket = accept(serverData->serverSocket, (struct sockaddr *)&(serverData->clientAddr), &(serverData->addr_size));
+        if (serverData->socket < 0) {
+            printf("Error accepting connection\n");
+            continue;
+        }
+
+        FileData fileData;
+        fileData.file = fopen(LIST, "r");
+        fileData.logFile = fopen(LOG, "a");
+
+        while (1) {
+            char buffer[2048];
+            char response[4096];
+
+            memset(buffer, 0, sizeof(buffer));
+            recv(serverData->socket, buffer, sizeof(buffer), 0);
+
+            printf("received: %s\n", buffer);
+            if (strcmp(buffer, "exit") == 0) {
+                printf("Exiting the client\n");
+                exit(0);
+            }
+            memset(response, 0, sizeof(response));
+            RequestClient(buffer, response, &fileData);
+            send(serverData->socket, response, strlen(response), 0);
+        }
+        fclose(fileData.file);
+        fclose(fileData.logFile);
+        close(serverData->socket);
+    }
+    close(serverData->serverSocket);
+}
+```
+Setelah itu jalankan server :
+Langkah - Langkah :
+1. ubah server.c menjadi server dengan `gcc server.c -o server`
+2. lakukan hal yang sama pada client.c `gcc client.c -o client`
+3. kemudian jalankan server terlebih dahulu dengan `./server`
+4. kemudian jalankan client dengan `./client`
+5. kemudian lakukan sesuai dengan yang diperintahkan di soal
+6. buka change.log untuk melihat apa saja perubahan yang sudah kamu lakukan
+
+##Selesai
