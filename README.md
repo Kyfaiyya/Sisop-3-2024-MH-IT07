@@ -266,9 +266,9 @@ Berisikan :
 
 -> Input : Mewakili 2 angka / atau dua input yang akan diproses
 
--> Pipe
+-> Pipe : Komunikasi proses parent-child
 
--> Fork
+-> Fork : Membuat proses child
 
 -> Parent Process
 
@@ -371,4 +371,92 @@ Berisikan :
 
       return 0;
   }
+```
+### Revisi Soal 2
+1. Pada function `main` ->  result
+```
+int result;
+    if (strcmp(argv[1], "-kali") == 0) {
+        result = num1 * num2;
+        printf("hasil perkalian %s dan %s adalah ", input1, input2);
+    } else if (strcmp(argv[1], "-tambah") == 0) {
+        result = num1 + num2;
+        printf("hasil penjumlahan %s dan %s adalah ", input1, input2);
+    } else if (strcmp(argv[1], "-kurang") == 0) {
+        result = num1 - num2;
+        printf("hasil pengurangan %s dan %s adalah ", input1, input2);
+
+        if (result < 0) {
+            printf("ERROR");
+            exit(EXIT_FAILURE);
+        } else if (result == 0) {
+            printf("nol");
+        }
+    } else if (strcmp(argv[1], "-bagi") == 0) {
+        if (num2 == 0) {
+            printf("ERROR\n");
+            exit(EXIT_FAILURE);
+        }
+        result = num1 / num2;
+        printf("hasil pembagian %s dan %s adalah ", input1, input2);
+    }
+
+```
+a. Sehingga outputnya sesuai dengan yang diminta dari soal.
+- Sebelumnya :
+```
+└─$ ./kalkulator -kali
+lima lima
+dua puluh lima
+```
+- Setelah revisi :
+```
+└─$ ./kalkulator -kali
+lima lima
+hasil perkalian lima dan lima adalah dua puluh lima
+```
+b. Pada operasi pengurangan inputnya adalah angka yang sama, hasilnya `nol`.
+
+Punya saya sudah bisa muncul nol, tapi pada belakang nol masih ada simbol-simbol yang tidak bisa dibaca.
+
+Output :
+```
+└─$ ./kalkulator -kurang
+lima lima
+hasil pengurangan lima dan lima adalah nol�;���
+```
+2. Pada function `main` -> .log
+```
+FILE *logFile = fopen("histori.log", "a");
+    if (logFile != NULL) {
+        char message[100];
+        time_t t = time(NULL);
+        struct tm *tm = localtime(&t);
+        convWords(result, words);
+
+        char op[20];
+        if (strcmp(argv[1], "-kali") == 0) {
+            strcpy(op, "KALI");
+        } else if (strcmp(argv[1], "-tambah") == 0) {
+            strcpy(op, "TAMBAH");
+        } else if (strcmp(argv[1], "-kurang") == 0) {
+            strcpy(op, "KURANG");
+        } else if (strcmp(argv[1], "-bagi") == 0) {
+            strcpy(op, "BAGI");
+        }
+        fprintf(logFile, "[%02d/%02d/%02d %02d:%02d:%02d] [%s] %s %s %s sama dengan %s.\n",
+                tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec, op, input1, argv[1], input2, words);
+
+        fclose(logFile);
+    } else {
+        perror("Gagal Membuat file .log!");
+    }
+```
+Output : 
+```
+[09/05/2024 12:55:39] [KURANG] enam -kurang enam sama dengan x����^?.
+[11/05/2024 01:54:18] [KURANG] lima -kurang lima sama dengan �D�e�^?.
+[11/05/2024 01:54:46] [KALI] lima -kali enam sama dengan tiga puluh.
+[11/05/2024 05:06:53] [KALI] lima -kali lima sama dengan dua puluh lima.
+[11/05/2024 05:07:08] [KURANG] lima -kurang lima sama dengan �;���^?.
 ```
