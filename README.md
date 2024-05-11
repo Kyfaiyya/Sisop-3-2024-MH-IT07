@@ -585,7 +585,7 @@ Memulai loop tak terbatas untuk berinteraksi dengan server :
     return 0;
 }
 ```
-##Buat file server dan isi dengan server.c, di dalam server.c berisi :
+Buat file server dan isi dengan server.c, di dalam server.c berisi :
 ```
 #include <stdio.h>
 #include <stdlib.h>
