@@ -950,7 +950,7 @@ Langkah - Langkah :
 
 5. kemudian lakukan sesuai dengan yang diperintahkan di soal
 
-6. buka change.log untuk melihat apa saja perubahan yang sudah kamu lakukan
+6. buka change.log untuk melihat apa saja perubahan yang sudah dilakukan
 
 
 ## Selesai
