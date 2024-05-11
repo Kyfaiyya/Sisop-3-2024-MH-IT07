@@ -463,30 +463,47 @@ Output :
 
 ## Soal 4
 Lewis Hamilton 🏎 seorang wibu akut dan sering melewatkan beberapa episode yang karena sibuk menjadi asisten. Maka dari itu dia membuat list anime yang sedang ongoing (biar tidak lupa) dan yang completed (anime lama tapi pengen ditonton aja). Tapi setelah Lewis pikir-pikir malah kepikiran untuk membuat list anime. Jadi dia membuat file (harap diunduh) dan ingin menggunakan socket yang baru saja dipelajarinya untuk melakukan CRUD pada list animenya. 
+
 a. Client dan server terhubung melalui socket. 
+
 b. client.c di dalam folder client dan server.c di dalam folder server
+
 c. Client berfungsi sebagai pengirim pesan dan dapat menerima pesan dari server.
+
 d. Server berfungsi sebagai penerima pesan dari client dan hanya menampilkan pesan perintah client saja. 
+
 e. Server digunakan untuk membaca myanimelist.csv. Dimana terjadi pengiriman data antara client ke server dan server ke client.
-	- Menampilkan seluruh judul
-	- Menampilkan judul berdasarkan genre
-	- Menampilkan judul berdasarkan hari
-	- Menampilkan status berdasarkan berdasarkan judul
-	- Menambahkan anime ke dalam file myanimelist.csv
-	- Melakukan edit anime berdasarkan judul
-	- Melakukan delete berdasarkan judul
-	- Selain command yang diberikan akan menampilkan tulisan “Invalid Command”
+
+ 	- Menampilkan seluruh judul
+	
+ 	- Menampilkan judul berdasarkan genre
+	
+ 	- Menampilkan judul berdasarkan hari
+	
+ 	- Menampilkan status berdasarkan berdasarkan judul
+	
+ 	- Menambahkan anime ke dalam file myanimelist.csv
+	
+ 	- Melakukan edit anime berdasarkan judul
+	
+ 	- Melakukan delete berdasarkan judul
+	
+ 	- Selain command yang diberikan akan menampilkan tulisan “Invalid Command”
+  
 f. Karena Lewis juga ingin track anime yang ditambah, diubah, dan dihapus. Maka dia membuat server dapat mencatat anime yang dihapus dalam sebuah log yang diberi nama change.log.
-	Format: [date] [type] [massage]
+	
+ 	Format: [date] [type] [massage]
 	Type: ADD, EDIT, DEL
 	Ex:
 		[29/03/24] [ADD] Kanokari ditambahkan.
 		[29/03/24] [EDIT] Kamis,Comedy,Kanokari,completed diubah menjadi Jumat,Action,Naruto,completed.
 		[29/03/24] [DEL] Naruto berhasil dihapus.
+  
 g. Koneksi antara client dan server tidak akan terputus jika ada kesalahan input dari client, cuma terputus jika user mengirim pesan “exit”. Program exit dilakukan pada sisi client.
 
 ### Langkah Pengerjaan : 
 - Buat file client dan isi dengan client.c, di dalam client.c berisi :
+
 Struktur Fungsi Main :
 ```
 #include <stdio.h>
@@ -502,7 +519,9 @@ int main() {
     struct sockaddr_in server;
     char buffer[2048];
 ```
+
 Membuat socket client :
+
 ```
   // Membuat socket client
     client = socket(AF_INET, SOCK_STREAM, 0);
@@ -512,25 +531,31 @@ Membuat socket client :
     }
   ```
 Informasi Server :
-1. `serverAddr.sin_family = AF_INET;`                       Mengatur tipe alamat yang digunakan (IPv4).                                                  
-2. `serverAddr.sin_port = htons(PORT);`                     Menetapkan port server yang akan dituju.                                                      
-3. `serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");`   Menetapkan alamat IP server yang akan dituju (localhost).                                    
-  ```
-```
-Mencoba melakukan koneksi ke server. Jika gagal, mencetak pesan kesalahan dan keluar :
+
+1. `serverAddr.sin_family = AF_INET;`                       Mengatur tipe alamat yang digunakan (IPv4).
+                                    
+2. `serverAddr.sin_port = htons(PORT);`                     Menetapkan port server yang akan dituju.
+                                           
+3. `serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");`   Menetapkan alamat IP server yang akan dituju (localhost).
+
 ```
   // Mengisi informasi server
     server.sin_family = AF_INET;
     server.sin_port = htons(PORT);
     server.sin_addr.s_addr = inet_addr("127.0.0.1");
+```
+Mencoba melakukan koneksi ke server. Jika gagal, mencetak pesan kesalahan dan keluar :
+```
    
   // Membuat koneksi ke server
     if (connect(client, (struct sockaddr *)&server, sizeof(server)) < 0) {
         printf("Error connecting to server\n");
         return -1;
     }
-  ```
+```
+
 Memulai loop tak terbatas untuk berinteraksi dengan server :
+
 ```
     // Loop untuk terus menerima dan mengirim pesan antara klien dan server
     while (1) {
@@ -560,7 +585,7 @@ Memulai loop tak terbatas untuk berinteraksi dengan server :
     return 0;
 }
 ```
-- Buat file server dan isi dengan server.c, di dalam server.c berisi :
+##Buat file server dan isi dengan server.c, di dalam server.c berisi :
 ```
 #include <stdio.h>
 #include <stdlib.h>
@@ -609,16 +634,27 @@ int main() {
 }
 ```
 Fungsi RequestClient : 
+
 Fungsi ini digunakan untuk memproses permintaan dari klien.
+
 Fungsi ini membaca perintah dari buffer yang diterima dari klien, kemudian menjalankan tindakan yang sesuai berdasarkan perintah tersebut.
+
 Perintah yang didukung meliputi:
+
 't' untuk mendapatkan daftar anime.
+
 'h' untuk mencari anime berdasarkan hari tayang.
+
 'g' untuk mencari anime berdasarkan genre.
+
 's' untuk mencari anime berdasarkan status.
+
 'a' untuk menambahkan anime ke daftar.
+
 'e' untuk mengedit anime dalam daftar.
+
 'd' untuk menghapus anime dari daftar.
+
 Setiap perintah akan mempengaruhi file daftar anime (myanimelist.csv) dan file log (change.log).
 ```
 void RequestClient(char *buffer, char *response, FileData *fileData) {
@@ -825,13 +861,22 @@ void RequestClient(char *buffer, char *response, FileData *fileData) {
 }
 ```
 Fungsi startServer : 
+
 Fungsi ini bertanggung jawab untuk memulai server.
+
 Pertama, server membuat soket menggunakan socket() dengan protokol AF_INET dan tipe soket SOCK_STREAM.
+
 Kemudian, server mengikat soketnya ke alamat yang ditentukan oleh PORT menggunakan bind().
+
 Setelah itu, server mulai mendengarkan koneksi masuk menggunakan listen().
+
 Selanjutnya, server memasuki loop utama di mana ia menerima koneksi baru dari klien menggunakan accept().
-Setiap koneksi baru akan ditangani dalam loop terpisah, di mana server akan menerima pesan dari klien, memprosesnya menggunakan RequestClient, dan mengirim respons kembali ke klien menggunakan send().
+
+Setiap koneksi baru akan ditangani dalam loop terpisah, di mana server akan menerima pesan dari klien, memprosesnya menggunakan RequestClient, dan mengirim respons kembali ke klien 
+menggunakan send().
+
 Proses ini terus berlanjut hingga klien mengirim pesan "exit".
+
 Setelah klien keluar, server menutup soketnya dan keluar.
 ```
 void startServer(ServerData *serverData) {
@@ -890,13 +935,21 @@ void startServer(ServerData *serverData) {
     close(serverData->serverSocket);
 }
 ```
+
 Setelah itu jalankan server :
+
 Langkah - Langkah :
+
 1. ubah server.c menjadi server dengan `gcc server.c -o server`
+
 2. lakukan hal yang sama pada client.c `gcc client.c -o client`
+
 3. kemudian jalankan server terlebih dahulu dengan `./server`
+
 4. kemudian jalankan client dengan `./client`
+
 5. kemudian lakukan sesuai dengan yang diperintahkan di soal
+
 6. buka change.log untuk melihat apa saja perubahan yang sudah kamu lakukan
 
 ##Selesai
